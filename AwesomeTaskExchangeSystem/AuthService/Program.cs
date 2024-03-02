@@ -1,15 +1,18 @@
+using AuthService;
+using Common.Extensions;
+using Common;
+using Microsoft.AspNetCore.Authorization;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddCustomAuthorization();
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+app.UseCustomAuthorization();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -18,8 +21,20 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
-
 app.MapControllers();
+
+app.MapPost("/login", [AllowAnonymous] async (string username, string password) =>
+{
+    await using var dataConnection = new DataConnection();
+    var user = dataConnection.Users.FirstOrDefault(x => x.Username == username && x.Password == password);
+    if (user == null)
+    {
+        return Results.NotFound();
+    }
+
+    //Produce event UserLogged
+
+    return Results.Ok(new { Token = TokenService.BuildToken(user) });
+});
 
 app.Run();
