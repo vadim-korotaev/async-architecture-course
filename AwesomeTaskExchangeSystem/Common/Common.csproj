@@ -7,10 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Events\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <PackageReference Include="linq2db.PostgreSQL" Version="5.4.0" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.27" />
       <PackageReference Include="Microsoft.OpenApi" Version="1.6.13" />
