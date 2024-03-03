@@ -19,7 +19,7 @@ public static class TokenService
         {
             new Claim(ClaimTypes.Name, user.Username),
             new Claim("id", user.Id.ToString()),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim(ClaimTypes.Role, user.Role.ToString())
         };
 
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SECRET_KEY));
