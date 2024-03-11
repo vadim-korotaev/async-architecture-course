@@ -1,0 +1,107 @@
+version: '3.9'
+services:
+  authDb:
+    image: postgres:15
+    # networks:
+    #   default:
+    #     ipv4_address: 192.${SUBNET}.0.125
+    ports:
+      - ${AUTH_DB_PORT}:5432
+    environment:
+      POSTGRES_DB: ${AUTH_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: ${PGDATA}
+    volumes:
+      - ./databases/auth_db/:/docker-entrypoint-initdb.d
+      - ./databases/auth_db/data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${AUTH_DB}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
+
+  # authService:ч
+  #   networks:
+  #     default:
+  #       ipv4_address: 192.${SUBNET}.0.142
+  #   ports:
+  #     - 10200:10200
+  #   environment:
+  #     ASPNETCORE_URLS: http://+:5000
+  #     ConnectionStrings:Mega: "${DATABASE_CONNECTION_STRING}CommandTimeout=1024;Timeout=1024"
+  #   image: ${API_IMAGE}
+  #   depends_on:
+  #     authDb:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+
+
+  taskTrackerDb:
+    image: postgres:15
+    # networks:
+    #   default:
+    #     ipv4_address: 192.${SUBNET}.0.125
+    ports:
+      - ${TASKS_DB_PORT}:5432
+    environment:
+      POSTGRES_DB: ${TASKS_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: ${PGDATA}
+    volumes:
+      - ./databases/tasks_db/:/docker-entrypoint-initdb.d
+      - ./databases/tasks_db/data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${TASKS_DB}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
+
+  # tasksService:
+  #   networks:
+  #     - default
+  #   image: ${WEB_IMAGE}
+  #   ports:
+  #     - ${WEB_PORT}:5000
+  #   environment:
+  #     ASPNETCORE_URLS: http://+:5000
+  #     ConnectionStrings:Mega: "${DATABASE_CONNECTION_STRING}CommandTimeout=1024;Timeout=1024"
+  #   depends_on:
+  #     tasksTrackerDb:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    hostname: rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=password
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log_levels [{connection,error},{default,error}] disk_free_limit 2147483648
+    volumes:
+      - ./rabbitmq:/var/lib/rabbitmq
+    ports:
+      - 15672:15672
+      - 5672:5672
+
+# networks:
+#   default:
+#     ipam:
+#       driver: default
+#       config:
+#         - subnet: 192.${SUBNET}.0.0/24
+#           gateway: 192.${SUBNET}.0.1
