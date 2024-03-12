@@ -27,7 +27,7 @@ services:
       start_period: 10s
     restart: always
 
-  # authService:ч
+  # authService:
   #   networks:
   #     default:
   #       ipv4_address: 192.${SUBNET}.0.142

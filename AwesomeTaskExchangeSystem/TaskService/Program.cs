@@ -39,11 +39,11 @@ app.MapGet("/tasks", [Authorize(Roles = "Worker")] async (ClaimsPrincipal user) 
     return Results.Ok(task);
 });
 
-app.MapPost("/tasks", [Authorize] async (AtesTask newTask) =>
+app.MapPost("/tasks", [Authorize] async (AtesTaskDto newTask) =>
 {
     await using var db = new TasksDb();
     
-    newTask = new AtesTask
+    newTask = new AtesTaskDto
     {
         Id = newTask.Id, 
         PublicId = new Guid(), 
@@ -55,7 +55,7 @@ app.MapPost("/tasks", [Authorize] async (AtesTask newTask) =>
     
     await db.InsertAsync(newTask);
     await ProduceEventAsync(new TaskAssigned(newTask.PublicId, newTask.Assigned));
-    await ProduceEventAsync(new StreamingEvent<AtesTask>(newTask));
+    await ProduceEventAsync(new StreamingEvent<AtesTaskDto>(newTask));
 
     return Results.Ok();
 });
@@ -83,7 +83,7 @@ app.MapPost("/tasks/{taskId}/complete", [Authorize(Roles = "Worker")]
     await ProduceEventAsync(new TaskCompleted(task.PublicId));
 
     task.Status = AtesTaskStatus.Completed;
-    await ProduceEventAsync(new StreamingEvent<AtesTask>(task));
+    await ProduceEventAsync(new StreamingEvent<AtesTaskDto>(task));
 
     return Results.Ok();
 });

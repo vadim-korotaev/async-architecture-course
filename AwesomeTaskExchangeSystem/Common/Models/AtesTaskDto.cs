@@ -1,6 +1,6 @@
 namespace Common;
 
-public class AtesTask
+public class AtesTaskDto
 {
     public int Id { get; set; }
     

@@ -2,7 +2,7 @@ namespace Common;
 
 public enum UserRole
 {
-    Worker,
-    Admin,
-    Manager
+    Worker = 1,
+    Admin = 2,
+    Manager = 3
 }

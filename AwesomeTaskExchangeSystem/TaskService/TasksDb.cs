@@ -8,7 +8,7 @@ public class TasksDb : LinqToDB.Data.DataConnection
 {
     public TasksDb() : base(ProviderName.PostgreSQL15, "") { }
 
-    public ITable<User> Users => this.GetTable<User>();
+    public ITable<UserDto> Users => this.GetTable<UserDto>();
     
-    public ITable<AtesTask> Tasks => this.GetTable<AtesTask>();
+    public ITable<AtesTaskDto> Tasks => this.GetTable<AtesTaskDto>();
 }

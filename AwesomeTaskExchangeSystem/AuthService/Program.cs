@@ -2,8 +2,10 @@ using AuthService;
 using Common.Extensions;
 using Common;
 using Common.Events;
+using DataModels;
 using LinqToDB;
 using Microsoft.AspNetCore.Authorization;
+using UserRole = Common.UserRole;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,14 @@ builder.Services.AddCustomAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables()
+    .Build();
+
+var connectionString = configuration.GetConnectionString("AuthDb");
 
 var app = builder.Build();
 app.UseCustomAuthorization();
@@ -25,43 +35,89 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+await AddDefaultAdminAsync();
+
 app.MapPost("/login", [AllowAnonymous] async (string username, string password) =>
 {
-    await using var dataConnection = new DataConnection();
+    await using var dataConnection = new AuthDb(connectionString);
     var user = dataConnection.Users.FirstOrDefault(x => x.Username == username && x.Password == password);
-    if (user == null)
-    {
-        return Results.NotFound();
-    }
-
-    await ProduceEventAsync(new UserLogged(user.PublicId));
     
-    return Results.Ok(new { Token = TokenService.BuildToken(user) });
+    return user == null ? 
+        Results.NotFound() : 
+        Results.Ok(new { Token = TokenService.BuildToken(user.Username, user.PublicId, (UserRole)user.RoleId) });
 });
 
 app.MapPost("/users", [Authorize(Roles = "Admin")] async (User newUser) =>
 {
-    await using var dataConnection = new DataConnection();
-    await dataConnection.InsertAsync(newUser);
+    await using var db = new AuthDb(connectionString);
+    await db.InsertAsync(newUser);
     
-    await ProduceEventAsync(new StreamingEvent<User>(newUser));
+    var userDto = new UserDto
+    {
+        Username = newUser.Username,
+        PublicId = newUser.PublicId,
+        Role = (UserRole)newUser.RoleId
+    };
+    await ProduceEventAsync(new StreamingEvent<UserDto>("UserCreated", userDto));
 
     return Results.Ok();
 });
 
-app.MapPut("/users/{publicId}", [Authorize(Roles = "Admin")] async (Guid publicId, User updatedUser) =>
+app.MapPut("/users", [Authorize(Roles = "Admin")] async (User updatedUser) =>
 {
-    await using var dataConnection = new DataConnection();
-    await dataConnection.UpdateAsync(updatedUser);
+    await using var db = new AuthDb(connectionString);
+
+    var isUserExist = db.Users.Any(u => u.PublicId == updatedUser.PublicId);
+    if (!isUserExist)
+        return Results.NotFound();
+
+    await db.UpdateAsync(updatedUser);
     
-    await ProduceEventAsync(new StreamingEvent<User>(updatedUser));
+    var userDto = new UserDto
+    {
+        Username = updatedUser.Username,
+        PublicId = updatedUser.PublicId,
+        Role = (UserRole)updatedUser.RoleId
+    };
+    await ProduceEventAsync(new StreamingEvent<UserDto>("UserUpdated", userDto));
 
     return Results.Ok();
+});
+
+app.MapGet("/users", [Authorize(Roles = "Admin")] async () =>
+{
+    await using var db = new AuthDb(connectionString);
+
+    var users = await db.Users.ToArrayAsync();
+    return Results.Ok(users);
 });
 
 async Task ProduceEventAsync<T>(T @event) where T : Event
 {
-    logger.LogDebug("PRODUCE SOME EVENT!!!");
+   Console.WriteLine("PRODUCE SOME EVENT!!!");
+}
+
+async Task AddDefaultAdminAsync()
+{
+    var defaultAdminName = "MasterPopug";
+    
+    await using var dataConnection = new AuthDb(connectionString);
+    var isDefaultAdminExits = dataConnection.Users
+        .Any(u => u.Username == defaultAdminName && u.RoleId == (int)UserRole.Admin);
+    
+    if (isDefaultAdminExits)
+        return;
+    
+    var defaultAdmin = new User
+    {
+        Username = defaultAdminName,
+        Password = "fck",
+        RoleId = (int)UserRole.Admin,
+        PublicId = Guid.NewGuid(),
+        IsDeleted = false
+    };
+    
+    await dataConnection.InsertAsync(defaultAdmin);
 }
 
 app.Run();
