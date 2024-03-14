@@ -19,7 +19,7 @@ public static class TokenService
         var claims = new[]
         {
             new Claim(ClaimTypes.Name, username),
-            new Claim("id", userPublicId.ToString()),
+            new Claim("PublicId", userPublicId.ToString()),
             new Claim(ClaimTypes.Role, userRole.ToString())
         };
         
@@ -34,5 +34,5 @@ public static class TokenService
         return new JwtSecurityTokenHandler().WriteToken(jwt);
     }
 
-    public static Guid GetId(this ClaimsPrincipal user) => Guid.Parse(user.FindFirst("id")!.Value);
+    public static Guid GetPublicId(this ClaimsPrincipal user) => Guid.Parse(user.FindFirst("PublicId")!.Value);
 }

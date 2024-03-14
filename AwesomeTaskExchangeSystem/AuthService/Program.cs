@@ -22,6 +22,9 @@ var configuration = new ConfigurationBuilder()
 
 var connectionString = configuration.GetConnectionString("AuthDb");
 
+builder.Services.AddRabbitMqConnection(configuration);
+builder.Services.AddProducer(configuration);
+
 var app = builder.Build();
 app.UseCustomAuthorization();
 
@@ -63,11 +66,11 @@ app.MapPost("/users", [Authorize(Roles = "Admin")] async (User newUser) =>
     return Results.Ok();
 });
 
-app.MapPut("/users", [Authorize(Roles = "Admin")] async (User updatedUser) =>
+app.MapPut("/users/{userId}", [Authorize(Roles = "Admin")] async (int userId, User updatedUser) =>
 {
     await using var db = new AuthDb(connectionString);
 
-    var isUserExist = db.Users.Any(u => u.PublicId == updatedUser.PublicId);
+    var isUserExist = db.Users.Any(u => u.Id == userId);
     if (!isUserExist)
         return Results.NotFound();
 
@@ -88,7 +91,7 @@ app.MapGet("/users", [Authorize(Roles = "Admin")] async () =>
 {
     await using var db = new AuthDb(connectionString);
 
-    var users = await db.Users.ToArrayAsync();
+    var users = await db.Users.ToListAsync();
     return Results.Ok(users);
 });
 

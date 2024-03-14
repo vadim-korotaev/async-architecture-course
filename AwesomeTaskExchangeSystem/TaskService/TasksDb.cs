@@ -1,14 +1,14 @@
 using Common;
+using DataModels;
 using LinqToDB;
-using LinqToDB.Mapping;
 
 namespace TaskService;
 
 public class TasksDb : LinqToDB.Data.DataConnection
 {
-    public TasksDb() : base(ProviderName.PostgreSQL15, "") { }
+    public TasksDb(string connectionString) : base(ProviderName.PostgreSQL15, connectionString) { }
 
-    public ITable<UserDto> Users => this.GetTable<UserDto>();
+    public ITable<User> Users => this.GetTable<User>();
     
-    public ITable<AtesTaskDto> Tasks => this.GetTable<AtesTaskDto>();
+    public ITable<AtesTask> Tasks => this.GetTable<AtesTask>();
 }
